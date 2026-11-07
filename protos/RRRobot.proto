@@ -1,0 +1,162 @@
+#VRML_SIM R2025a utf8
+# Red Robot 2026 kit robot ("mainV2" CAD) with the devices the RedRobot.h API exposes:
+#   motor0, motor2 (left drive), motor3 (right drive)   -> RedRobot::WriteDCMotor()
+#   servo0..servo3                                      -> RedRobot::SetServo()
+#   lf0..lf5 downward IR reflectance sensors            -> RedRobot::ReadLineSensor()
+#   match_rx receiver (match phase from the game supervisor)
+#
+# Robot frame: origin on the floor under the drive-axle midpoint, +x = chamfered nose
+# (line-sensor end), +y = left, z up.
+#
+# The example mechanism is deliberately simple - replace the servo/motor0 end points
+# with your real intake once it exists in CAD:
+#   servo0/servo1: two front "claw" paddles (with collision) that can trap a pipe
+#   servo2/servo3: unloaded horns on the top deck (visual only)
+#   motor0:        front roller (visual only)
+
+PROTO RRRobot [
+  field SFVec3f    translation     0 0 0
+  field SFRotation rotation        0 0 1 0
+  field SFString   name            "robot"
+  field SFString   controller      "red_robot"
+  field MFString   controllerArgs  []
+  field SFString   customData      ""
+  field SFBool     supervisor      FALSE
+  field SFColor    bodyColor       0.85 0.25 0.22
+  field SFFloat    mass            0.55        # chassis + electronics + 6 AA, kg
+  field SFFloat    maxWheelSpeed   26          # rad/s at WriteDCMotor(.., 100): ~250 rpm TT motor
+  field SFFloat    wheelTorque     0.12        # N.m per drive motor (stall-ish)
+  field SFFloat    servoTorque     0.2         # N.m (9 g servo ~0.18, 40 g servo ~1.0)
+  field SFFloat    servoSpeed      8           # rad/s
+]
+{
+  Robot {
+    translation IS translation
+    rotation IS rotation
+    name IS name
+    model "RedRobot2026"
+    controller IS controller
+    controllerArgs IS controllerArgs
+    customData IS customData
+    supervisor IS supervisor
+    children [
+      # ---------------- chassis (visual from CAD)
+      Shape {
+        castShadows FALSE
+        appearance PBRAppearance { baseColor IS bodyColor metalness 0 roughness 0.6 }
+        geometry Mesh { url "meshes/robot_body.stl" }
+      }
+
+      # ---------------- drive wheels (yellow TT motors)
+      HingeJoint {
+        jointParameters HingeJointParameters { axis 0 1 0 anchor 0 0.0777 0.0326 }
+        device [
+          RotationalMotor { name "motor2" maxVelocity IS maxWheelSpeed maxTorque IS wheelTorque }
+          PositionSensor { name "motor2_encoder" }
+        ]
+        endPoint Solid {
+          translation 0 0.0777 0.0326
+          name "left wheel"
+          contactMaterial "wheel"
+          children [
+            Pose { rotation 0 0 1 3.14159 children [
+              Shape { castShadows FALSE appearance PBRAppearance { baseColor 0.95 0.8 0.1 roughness 0.8 metalness 0 } geometry Mesh { url "meshes/robot_wheel.stl" } }
+            ] }
+          ]
+          boundingObject Pose { rotation 1 0 0 1.5708 children [ Cylinder { height 0.026 radius 0.0326 subdivision 24 } ] }
+          physics Physics { density -1 mass 0.03 }
+        }
+      }
+      HingeJoint {
+        jointParameters HingeJointParameters { axis 0 1 0 anchor 0 -0.0777 0.0326 }
+        device [
+          RotationalMotor { name "motor3" maxVelocity IS maxWheelSpeed maxTorque IS wheelTorque }
+          PositionSensor { name "motor3_encoder" }
+        ]
+        endPoint Solid {
+          translation 0 -0.0777 0.0326
+          name "right wheel"
+          contactMaterial "wheel"
+          children [
+            Shape { castShadows FALSE appearance PBRAppearance { baseColor 0.95 0.8 0.1 roughness 0.8 metalness 0 } geometry Mesh { url "meshes/robot_wheel.stl" } }
+          ]
+          boundingObject Pose { rotation 1 0 0 1.5708 children [ Cylinder { height 0.026 radius 0.0326 subdivision 24 } ] }
+          physics Physics { density -1 mass 0.03 }
+        }
+      }
+
+      # ---------------- skid / ball caster under the nose (not in the CAD - add yours!)
+      Solid {
+        translation 0.105 0 0.009
+        name "caster"
+        contactMaterial "caster"
+        children [ Shape { appearance PBRAppearance { baseColor 0.8 0.8 0.8 metalness 0.8 roughness 0.2 } geometry Sphere { radius 0.009 subdivision 2 } } ]
+        boundingObject Sphere { radius 0.009 }
+        physics Physics { density -1 mass 0.005 }
+      }
+
+      # ---------------- 6-channel line sensor at the nose, facing down.
+      # lf0 is on the robot's RIGHT, lf5 on its LEFT (i.e. left->right when you
+      # face the robot's front, as the RedRobot.h comment says).
+      DEF LF Pose { translation 0.118 0 0.016 rotation 0 1 0 1.5708 children [
+        DistanceSensor { translation 0 -0.0238 0 name "lf0" type "infra-red" lookupTable [0 1000 0, 0.05 1000 0, 0.06 0 0] numberOfRays 1 aperture 0.01 }
+        DistanceSensor { translation 0 -0.0143 0 name "lf1" type "infra-red" lookupTable [0 1000 0, 0.05 1000 0, 0.06 0 0] numberOfRays 1 aperture 0.01 }
+        DistanceSensor { translation 0 -0.0048 0 name "lf2" type "infra-red" lookupTable [0 1000 0, 0.05 1000 0, 0.06 0 0] numberOfRays 1 aperture 0.01 }
+        DistanceSensor { translation 0  0.0048 0 name "lf3" type "infra-red" lookupTable [0 1000 0, 0.05 1000 0, 0.06 0 0] numberOfRays 1 aperture 0.01 }
+        DistanceSensor { translation 0  0.0143 0 name "lf4" type "infra-red" lookupTable [0 1000 0, 0.05 1000 0, 0.06 0 0] numberOfRays 1 aperture 0.01 }
+        DistanceSensor { translation 0  0.0238 0 name "lf5" type "infra-red" lookupTable [0 1000 0, 0.05 1000 0, 0.06 0 0] numberOfRays 1 aperture 0.01 }
+      ] }
+
+      # ---------------- servo0 / servo1: front claw paddles (joint 0 = pointing forward)
+      HingeJoint {
+        jointParameters HingeJointParameters { axis 0 0 1 anchor 0.10 0.085 0.045 }
+        device [ RotationalMotor { name "servo0" minPosition -1.5708 maxPosition 1.5708 maxVelocity IS servoSpeed maxTorque IS servoTorque } ]
+        endPoint Solid {
+          translation 0.10 0.085 0.045
+          name "servo0 paddle"
+          children [ Pose { translation 0.0375 0 0 children [ Shape { appearance PBRAppearance { baseColor 0.15 0.15 0.15 roughness 0.7 metalness 0 } geometry Box { size 0.075 0.005 0.03 } } ] } ]
+          boundingObject Pose { translation 0.0375 0 0 children [ Box { size 0.075 0.005 0.03 } ] }
+          physics Physics { density -1 mass 0.008 }
+        }
+      }
+      HingeJoint {
+        jointParameters HingeJointParameters { axis 0 0 1 anchor 0.10 -0.085 0.045 }
+        device [ RotationalMotor { name "servo1" minPosition -1.5708 maxPosition 1.5708 maxVelocity IS servoSpeed maxTorque IS servoTorque } ]
+        endPoint Solid {
+          translation 0.10 -0.085 0.045
+          name "servo1 paddle"
+          children [ Pose { translation 0.0375 0 0 children [ Shape { appearance PBRAppearance { baseColor 0.15 0.15 0.15 roughness 0.7 metalness 0 } geometry Box { size 0.075 0.005 0.03 } } ] } ]
+          boundingObject Pose { translation 0.0375 0 0 children [ Box { size 0.075 0.005 0.03 } ] }
+          physics Physics { density -1 mass 0.008 }
+        }
+      }
+      # ---------------- servo2 / servo3: unloaded horns on the top deck
+      HingeJoint {
+        jointParameters HingeJointParameters { axis 0 0 1 anchor -0.02 0.04 0.09 }
+        device [ RotationalMotor { name "servo2" minPosition -1.5708 maxPosition 1.5708 maxVelocity IS servoSpeed maxTorque IS servoTorque } ]
+        endPoint Solid { translation -0.02 0.04 0.09 name "servo2 horn"
+          children [ Pose { translation 0.015 0 0 children [ Shape { appearance PBRAppearance { baseColor 1 1 1 roughness 0.5 metalness 0 } geometry Box { size 0.03 0.006 0.003 } } ] } ]
+          physics Physics { density -1 mass 0.002 inertiaMatrix [ 2e-7 2e-7 2e-7, 0 0 0 ] centerOfMass [ 0.015 0 0 ] } }
+      }
+      HingeJoint {
+        jointParameters HingeJointParameters { axis 0 0 1 anchor -0.02 -0.04 0.09 }
+        device [ RotationalMotor { name "servo3" minPosition -1.5708 maxPosition 1.5708 maxVelocity IS servoSpeed maxTorque IS servoTorque } ]
+        endPoint Solid { translation -0.02 -0.04 0.09 name "servo3 horn"
+          children [ Pose { translation 0.015 0 0 children [ Shape { appearance PBRAppearance { baseColor 1 1 1 roughness 0.5 metalness 0 } geometry Box { size 0.03 0.006 0.003 } } ] } ]
+          physics Physics { density -1 mass 0.002 inertiaMatrix [ 2e-7 2e-7 2e-7, 0 0 0 ] centerOfMass [ 0.015 0 0 ] } }
+      }
+      # ---------------- motor0: extra yellow DC motor (front roller placeholder)
+      HingeJoint {
+        jointParameters HingeJointParameters { axis 0 1 0 anchor 0.14 0 0.075 }
+        device [ RotationalMotor { name "motor0" maxVelocity IS maxWheelSpeed maxTorque IS wheelTorque } ]
+        endPoint Solid { translation 0.14 0 0.075 name "motor0 roller"
+          children [ Pose { rotation 1 0 0 1.5708 children [ Shape { appearance PBRAppearance { baseColor 0.95 0.8 0.1 roughness 0.8 metalness 0 } geometry Cylinder { height 0.10 radius 0.008 } } ] } ]
+          physics Physics { density -1 mass 0.01 inertiaMatrix [ 5e-6 5e-6 5e-6, 0 0 0 ] centerOfMass [ 0 0 0 ] } }
+      }
+
+      Receiver { name "match_rx" channel 7 }
+    ]
+    boundingObject Pose { translation 0.04 0 0.042 children [ Box { size 0.181 0.152 0.048 } ] }
+    physics Physics { density -1 mass IS mass centerOfMass [ 0.03 0 0.04 ] }
+  }
+}

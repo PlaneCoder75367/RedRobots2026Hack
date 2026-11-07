@@ -1,0 +1,17 @@
+{
+  "configurations": [
+    {
+      "name": "Mac (Webots)",
+      "includePath": [
+        "/Applications/Webots.app/Contents/include/controller/cpp",
+        "/Applications/Webots.app/Contents/include/controller/c",
+        "${workspaceFolder}/controllers/red_robot/sim",
+        "${workspaceFolder}/controllers/red_robot/team"
+      ],
+      "compilerPath": "/usr/bin/clang++",
+      "intelliSenseMode": "macos-clang-arm64",
+      "cppStandard": "c++17"
+    }
+  ],
+  "version": 4
+}

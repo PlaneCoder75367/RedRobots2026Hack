@@ -1,0 +1,84 @@
+{
+  "_README": "Single source of truth for everything the CAD doesn't contain (tape, zones, buttons, levers, pipe start spots). Units: metres. Frame: +x toward the RED side, +y toward the smokestacks, z up, floor = 0. Rectangles are [xmin, ymin, xmax, ymax] measured to the OUTSIDE edge of the tape (touching tape = inside). After editing, run: python3 tools/build_world.py",
+
+  "tape_width": 0.019,
+
+  "match": {
+    "auto_seconds": 20,
+    "teleop_seconds": 120,
+    "endgame_seconds": 20,
+    "dispense_cooldown_s": 3.0,
+    "dispense_speed_mps": 0.40
+  },
+
+  "points": {
+    "trench": 10,
+    "stack": [20, 40, 60],
+    "auto_exit_start": 20,
+    "auto_line_follow": 20,
+    "auto_first_button": 10,
+    "auto_pipe_bonus": 20,
+    "safe_zone_contact": -20
+  },
+
+  "robot_footprint": {
+    "_note": "robot frame: origin on the floor under the axle midpoint, +x = nose. Matches mainV2 + wheels.",
+    "xmin": -0.051, "xmax": 0.131, "ymin": -0.091, "ymax": 0.091
+  },
+
+  "alliances": {
+    "red": {
+      "color": [0.85, 0.25, 0.22],
+      "start_zone": [0.0254, 0.082, 0.324, 0.966],
+      "trench": [0.925, 0.051, 1.168, 0.965],
+      "steam_plant_zone": [0.0254, 0.975, 0.914, 1.181],
+      "stack_centers_x": [0.1143, 0.2921, 0.4699, 0.6477, 0.8255],
+      "safe_zone": [-1.168, -1.219, 0.0, -0.607],
+      "button_x": -0.68,
+      "lever_xy": [-1.02, -1.10],
+      "factory_x": -0.2285
+    },
+    "blue": {
+      "color": [0.22, 0.42, 0.85],
+      "start_zone": [-0.324, 0.082, -0.0254, 0.966],
+      "trench": [-1.168, 0.051, -0.925, 0.965],
+      "steam_plant_zone": [-0.914, 0.975, -0.0254, 1.181],
+      "stack_centers_x": [-0.1143, -0.2921, -0.4699, -0.6477, -0.8255],
+      "safe_zone": [0.0, -1.219, 1.168, -0.607],
+      "button_x": 0.68,
+      "lever_xy": [1.02, -1.10],
+      "factory_x": 0.2285
+    }
+  },
+
+  "stack_center_y": 1.1659,
+  "stack_radius": 0.0406,
+  "back_wall_face_y": 1.181,
+  "near_wall_face_y": -1.2192,
+
+  "lines": {
+    "_note": "Black auto tape. Each line has an owner alliance; 'path' is a list of points, or a cubic Bezier given as 4 control points with \"bezier\": true. The auto line-follow bonus is awarded when an owner robot reaches within 'end_radius' of the line's last point.",
+    "end_radius": 0.15,
+    "list": [
+      {"owner": "red",  "path": [[0.323, 0.524], [0.93, 0.440]]},
+      {"owner": "blue", "path": [[-0.323, 0.524], [-0.93, 0.440]]},
+      {"owner": "red",  "bezier": true, "path": [[0.174, 0.082], [0.174, -0.204], [-0.844, -0.308], [-0.858, -0.600]], "_note": "red start zone -> red safe zone (crosses the blue curve)"},
+      {"owner": "blue", "bezier": true, "path": [[-0.174, 0.082], [-0.174, -0.204], [0.844, -0.308], [0.858, -0.600]], "_note": "blue start zone -> blue safe zone (crosses the red curve)"}
+    ]
+  },
+
+  "start_pipes": {
+    "_note": "9 pipes, standing upright, from the manual diagram (7 in from the start zone / smokestack zone).",
+    "list": [
+      [-0.502, 0.806], [-0.502, 0.504], [-0.502, 0.090],
+      [0.502, 0.806], [0.502, 0.504], [0.502, 0.090],
+      [-0.858, -0.607], [0.0, -0.607], [0.858, -0.607]
+    ]
+  },
+
+  "robots": [
+    {"_note": "Placed by tools/build_world.py. The game supervisor scores every RRRobot in the world; its alliance comes from customData alliance=red/blue. Add more robots here (or paste them in Webots).",
+     "def": "RED1", "alliance": "red", "x": 0.15, "y": 0.548, "heading_deg": -7.9,
+     "controller": "red_robot", "keyboard": true}
+  ]
+}

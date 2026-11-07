@@ -1,0 +1,38 @@
+#VRML_SIM R2025a utf8
+# Red Robot 2026 game piece: 3" x 3" flanged pipe (hollow spool).
+# Axis = local z, so with rotation 0 0 1 0 the pipe stands upright on a flat end.
+# Collision = two flanges + body (simple primitives -> stable rolling/stacking).
+# The real piece is hollow; the bore is not modelled for collisions.
+
+PROTO RRPipe [
+  field SFVec3f    translation 0 0 0.0381
+  field SFRotation rotation    0 0 1 0
+  field SFString   name        "pipe"
+  field SFFloat    mass        0.05          # kg - weigh a real one and update!
+  field SFColor    color       0.62 0.64 0.67
+  field SFFloat    rollDamping 0.5           # stands in for rolling resistance (0 = rolls forever)
+]
+{
+  Solid {
+    translation IS translation
+    rotation IS rotation
+    name IS name
+    model "RRPipe"
+    contactMaterial "pipe"
+    children [
+      Shape {
+        castShadows FALSE
+        appearance PBRAppearance { baseColor IS color metalness 0.5 roughness 0.45 }
+        geometry Mesh { url "meshes/pipe.stl" }
+      }
+    ]
+    boundingObject Group {
+      children [
+        Pose { translation 0 0  0.0341 children [ Cylinder { height 0.008 radius 0.0381 subdivision 24 } ] }
+        Pose { translation 0 0 -0.0341 children [ Cylinder { height 0.008 radius 0.0381 subdivision 24 } ] }
+        Cylinder { height 0.0602 radius 0.0330 subdivision 24 }
+      ]
+    }
+    physics Physics { density -1 mass IS mass damping Damping { linear IS rollDamping angular IS rollDamping } }
+  }
+}
